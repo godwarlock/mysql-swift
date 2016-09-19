@@ -108,7 +108,7 @@ public func ==(lhs: Connection.TimeZone, rhs: Connection.TimeZone) -> Bool {
 }
 
 extension Connection {
-    public enum Error: ErrorProtocol {
+    public enum ConnectionError: Error {
         case connectionError(String)
         case connectionPoolGetConnectionError
     }
@@ -139,17 +139,17 @@ public final class Connection {
             fatalError("mysql_init() failed.")
         }
         
-        var timeoutPtr = UnsafeMutablePointer<Int>(allocatingCapacity: 1)
+        var timeoutPtr = UnsafeMutablePointer<Int>.allocate(capacity: 1)
         timeoutPtr.pointee = options.timeout
         defer {
-            timeoutPtr.deallocateCapacity(1)
+            timeoutPtr.deallocate(capacity: 1)
         }
         mysql_options(mysql, MYSQL_OPT_CONNECT_TIMEOUT, timeoutPtr)
         
-        var reconnectPtr = UnsafeMutablePointer<my_bool>(allocatingCapacity: 1)
+        var reconnectPtr = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
         reconnectPtr.pointee = options.reconnect == false ? 0 : 1
         defer {
-            reconnectPtr.deallocateCapacity(1)
+            reconnectPtr.deallocate(capacity: 1)
         }
         
         if mysql_real_connect(mysql,
@@ -159,7 +159,7 @@ public final class Connection {
             options.database,
             UInt32(options.port), nil, 0) == nil {
             // error
-                throw Error.connectionError(MySQLUtil.getMySQLError(mysql))
+                throw ConnectionError.connectionError(MySQLUtil.getMySQLError(mysql))
         }
         mysql_set_character_set(mysql, options.encoding.rawValue)
         self.mysql_ = mysql
