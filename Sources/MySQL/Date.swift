@@ -19,8 +19,21 @@ internal final class SQLDateCalendar {
         if let cal = cals[timeZone] {
             return cal
         }
+        
         var newCal = Calendar(identifier: Calendar.Identifier.gregorian)
-        newCal.timeZone = unsafeBitCast(timeZone.timeZone, to: TimeZone.ReferenceType.self) as TimeZone // TODO: in Linux
+        let timezoneString = CFTimeZoneGetName(timeZone.timeZone)
+        #if os(OSX)
+            let length = CFStringGetMaximumSizeForEncoding(CFStringGetLength(timezoneString!), CFStringBuiltInEncodings.UTF8.rawValue) + 1
+            var buffer = UnsafeMutablePointer<Int8>.allocate(capacity: length)
+            
+            CFStringGetCString(timezoneString!, buffer, length, CFStringBuiltInEncodings.UTF8.rawValue)
+        #elseif os(Linux)
+            let length = CFStringGetMaximumSizeForEncoding(CFStringGetLength(timezoneString!), UInt32(kCFStringEncodingUTF8)) + 1
+            var buffer = UnsafeMutablePointer<Int8>.allocate(capacity: length)
+            
+            CFStringGetCString(timezoneString!, buffer, length, UInt32(kCFStringEncodingUTF8))
+        #endif
+        newCal.timeZone = TimeZone.init(identifier: String(cString: buffer))!
         self.save(calendar: newCal, forTimeZone: timeZone)
         return newCal
     }
@@ -64,6 +77,11 @@ public struct SQLDate {
                 comp.hour = 0
                 comp.minute = 0
                 comp.second = 0
+                
+                //                var gregorian = CFCalendarCopyCurrent()
+                //                CFCalendarSetTimeZone(gregorian, timeZone.timeZone)
+                //                var at = CFAbsoluteTimeGetCurrent()
+                //                CFCalendarComposeAbsoluteTime(gregorian, &at, "yMdHms",  1965, 1, 6, 14, 10, 00);
                 let cal = SQLDateCalendar.calendar(forTimezone: timeZone)
                 if let date = cal.date(from: comp) {
                     self.timeInterval = date.timeIntervalSince1970
@@ -78,18 +96,19 @@ public struct SQLDate {
                 let hour = Int(String(chars[11...12])),
                 let minute = Int(String(chars[14...15])),
                 let second = Int(String(chars[17...18])) , year > 0 && day > 0 && month > 0 {
-                    var comp = DateComponents()
-                    comp.year = year
-                    comp.month = month
-                    comp.day = day
-                    comp.hour = hour
-                    comp.minute = minute
-                    comp.second = second
-                    let cal = SQLDateCalendar.calendar(forTimezone: timeZone)
-                    if let date = cal.date(from :comp) {
-                        self.timeInterval = date.timeIntervalSince1970
-                        return
-                    }
+                var comp = DateComponents()
+                
+                comp.year = year
+                comp.month = month
+                comp.day = day
+                comp.hour = hour
+                comp.minute = minute
+                comp.second = second
+                let cal = SQLDateCalendar.calendar(forTimezone: timeZone)
+                if let date = cal.date(from :comp) {
+                    self.timeInterval = date.timeIntervalSince1970
+                    return
+                }
             }
         default: break
         }
