@@ -77,11 +77,6 @@ public struct SQLDate {
                 comp.hour = 0
                 comp.minute = 0
                 comp.second = 0
-                
-                //                var gregorian = CFCalendarCopyCurrent()
-                //                CFCalendarSetTimeZone(gregorian, timeZone.timeZone)
-                //                var at = CFAbsoluteTimeGetCurrent()
-                //                CFCalendarComposeAbsoluteTime(gregorian, &at, "yMdHms",  1965, 1, 6, 14, 10, 00);
                 let cal = SQLDateCalendar.calendar(forTimezone: timeZone)
                 if let date = cal.date(from: comp) {
                     self.timeInterval = date.timeIntervalSince1970
@@ -97,7 +92,6 @@ public struct SQLDate {
                 let minute = Int(String(chars[14...15])),
                 let second = Int(String(chars[17...18])) , year > 0 && day > 0 && month > 0 {
                 var comp = DateComponents()
-                
                 comp.year = year
                 comp.month = month
                 comp.day = day
@@ -139,7 +133,7 @@ extension SQLDate: QueryParameter {
     public func queryParameter(option: QueryParameterOption) -> QueryParameterType {
         let comp = SQLDateCalendar.mutex.sync { () -> DateComponents? in
             let cal = SQLDateCalendar.calendar(forTimezone: option.timeZone)
-            return cal.dateComponents([ .year, .month,  .day,  .hour, .minute, .second], from: date() as Date)
+            return cal.dateComponents([ .year, .month,  .day,  .hour, .minute, .second], from: date())
             }! // TODO: in Linux
         
         // YYYY-MM-DD HH:MM:SS
@@ -172,7 +166,7 @@ public func ==(lhs: SQLDate, rhs: SQLDate) -> Bool {
 
 extension Date: QueryParameter {
     public func queryParameter(option: QueryParameterOption) throws -> QueryParameterType {
-        return SQLDate(self as Date).queryParameter(option: option)
+        return SQLDate(self).queryParameter(option: option)
     }
 }
 
