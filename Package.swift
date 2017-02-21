@@ -21,3 +21,4 @@ let package = Package(
         .Package(url: "https://github.com/eason-h/Swift-MySQL-Client-Linux.git", majorVersion: 1)
     ]
 )
+#endif
